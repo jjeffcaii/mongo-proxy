@@ -1,0 +1,11 @@
+[[constraint]]
+  branch = "master"
+  name = "github.com/goxmpp/sasl"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/sbunce/bson"
+
+[prune]
+  go-tests = true
+  unused-packages = true
