@@ -5,7 +5,7 @@ import (
   "errors"
   "io"
 
-  "github.com/jjeffcaii/go-mongo-proxy/protocol"
+  "github.com/jjeffcaii/mongo-proxy/protocol"
 )
 
 type Handler func(context Context)

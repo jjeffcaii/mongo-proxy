@@ -7,7 +7,7 @@ import (
   "log"
   "net"
 
-  "github.com/jjeffcaii/go-mongo-proxy/protocol"
+  "github.com/jjeffcaii/mongo-proxy/protocol"
 )
 
 type mid struct {

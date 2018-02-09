@@ -4,9 +4,9 @@ import (
   "fmt"
   "log"
 
-  "github.com/jjeffcaii/go-mongo-proxy"
-  "github.com/jjeffcaii/go-mongo-proxy/middware"
-  "github.com/jjeffcaii/go-mongo-proxy/protocol"
+  "github.com/jjeffcaii/mongo-proxy"
+  "github.com/jjeffcaii/mongo-proxy/middware"
+  "github.com/jjeffcaii/mongo-proxy/protocol"
 )
 
 func main() {

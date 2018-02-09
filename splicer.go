@@ -6,7 +6,7 @@ import (
   "encoding/binary"
   "io"
 
-  "github.com/jjeffcaii/go-mongo-proxy/protocol"
+  "github.com/jjeffcaii/mongo-proxy/protocol"
 )
 
 type splicer struct {
