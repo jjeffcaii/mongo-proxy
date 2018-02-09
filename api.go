@@ -1,27 +1,27 @@
 package pxmgo
 
 import (
-  "bytes"
-  "errors"
-  "io"
+	"bytes"
+	"errors"
+	"io"
 
-  "github.com/jjeffcaii/mongo-proxy/protocol"
+	"github.com/jjeffcaii/mongo-proxy/protocol"
 )
 
 type Handler func(context Context)
 
 type Context interface {
-  Use(middleware Middleware, allow ...protocol.OpCode) Context
-  Send(bs []byte) error
-  SendBuffer(bf *bytes.Buffer) error
-  Next() (protocol.Message, error)
-  Close() error
+	Use(middleware Middleware, allow ...protocol.OpCode) Context
+	Send(bs []byte) error
+	SendBuffer(bf *bytes.Buffer) error
+	Next() (protocol.Message, error)
+	Close() error
 }
 
 // communication endpoint for routing messages.
 type Endpoint interface {
-  io.Closer
-  Serve(handler Handler) error
+	io.Closer
+	Serve(handler Handler) error
 }
 
 // TODO: optimize -> 链式状态管理太乱了 :-(

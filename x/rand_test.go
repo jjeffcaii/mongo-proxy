@@ -1,10 +1,10 @@
 package x
 
 import (
-  "fmt"
-  "testing"
+	"fmt"
+	"testing"
 )
 
 func TestRandomString(t *testing.T) {
-  fmt.Println(RandomString(32))
+	fmt.Println(RandomString(32))
 }
