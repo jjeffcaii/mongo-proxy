@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"net"
 	"sync/atomic"
 
@@ -139,6 +140,7 @@ func (p *implContext) nextMessage() error {
 	if err != nil && err != EOF {
 		return err
 	}
+	p.queue <- msg
 	return nil
 }
 
@@ -153,6 +155,7 @@ func newContext(conn net.Conn) Context {
 	go func() {
 		for {
 			if err := ctx.nextMessage(); err != nil {
+				log.Println("fetch next message failed:", err)
 				break
 			}
 		}

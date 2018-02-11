@@ -1,4 +1,4 @@
-package middware
+package pxmgo
 
 import (
 	"crypto/md5"

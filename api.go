@@ -28,6 +28,11 @@ type Endpoint interface {
 var EOF = io.EOF
 var Ignore = errors.New("skip message")
 
+type Authenticator interface {
+	Middleware
+	Wait() (db *string, ok bool)
+}
+
 type Middleware interface {
 	// Handle handle request.
 	Handle(ctx Context, req protocol.Message) error

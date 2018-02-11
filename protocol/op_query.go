@@ -15,10 +15,12 @@ type OpQuery struct {
 	ReturnFieldsSelector Document
 }
 
-func (p *OpQuery) GetDatabase() *string {
-	i := strings.Index(p.FullCollectionName, ".")
-	db := p.FullCollectionName[:i]
-	return &db
+func (p *OpQuery) TableName() (*TableName, bool) {
+	sp := strings.Split(p.FullCollectionName, ".")
+	if len(sp) == 2 {
+		return &TableName{sp[0], sp[1]}, true
+	}
+	return nil,false
 }
 
 func (p *OpQuery) Encode() ([]byte, error) {

@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/sbunce/bson"
 )
@@ -32,8 +33,17 @@ type Message interface {
 	Header() *Header
 }
 
+type TableName struct {
+	Database   string
+	Collection string
+}
+
+func (p TableName) String() string {
+	return fmt.Sprintf("%s.%s", p.Database, p.Collection)
+}
+
 type DatabaseSupport interface {
-	GetDatabase() *string
+	TableName() (tbl *TableName, ok bool)
 }
 
 type Buffered interface {
