@@ -24,6 +24,11 @@ type Endpoint interface {
 	Serve(handler Handler) error
 }
 
+type Plugin interface {
+	Write(msg protocol.Message) error
+	Handle(req protocol.Message) error
+}
+
 // TODO: optimize -> 链式状态管理太乱了 :-(
 var EOF = io.EOF
 var END = errors.New("MIDDLEWARE_END")

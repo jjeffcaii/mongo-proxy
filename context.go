@@ -70,7 +70,7 @@ func (p *implContext) Next() (protocol.Message, error) {
 	case protocol.OpCodeInsert:
 		msg = &protocol.OpInsert{}
 		break
-	case protocol.RESERVED:
+	case protocol.OpReserved:
 		// TODO: RESERVED
 		break
 	case protocol.OpCodeQuery:

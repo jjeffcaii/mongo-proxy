@@ -6,18 +6,16 @@ import (
 	"github.com/sbunce/bson"
 )
 
-const (
-	HeaderLength = 16
-)
-
 type OpCode int32
 
 const (
+	HeaderLength = 16
+
 	OpCodeReply      OpCode = 1
 	OpCodeMsg        OpCode = 1000
 	OpCodeUpdate     OpCode = 2001
 	OpCodeInsert     OpCode = 2002
-	RESERVED         OpCode = 2003
+	OpReserved       OpCode = 2003
 	OpCodeQuery      OpCode = 2004
 	OpCodeGetMore    OpCode = 2005
 	OpCodeDel        OpCode = 2006
