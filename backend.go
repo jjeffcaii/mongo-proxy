@@ -24,7 +24,9 @@ func (p *staticBackend) Serve(handler Handler) error {
 		return err
 	}
 	p.conn = tcpConn
-	go handler(newContext(tcpConn))
+	go func(h Handler, c Context) {
+		h(c)
+	}(handler, newContext(tcpConn))
 	return nil
 }
 

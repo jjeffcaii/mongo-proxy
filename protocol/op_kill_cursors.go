@@ -2,18 +2,13 @@ package protocol
 
 import (
 	"bytes"
-	"fmt"
 )
 
 type OpKillCursors struct {
-	Header            *Header
+	*Op
 	Zero              int32
 	NumberOfCursorIDs int32
 	CursorIDs         []int64
-}
-
-func (p *OpKillCursors) GetHeader() *Header {
-	return p.Header
 }
 
 func (p *OpKillCursors) Encode() ([]byte, error) {
@@ -60,7 +55,7 @@ func (p *OpKillCursors) Decode(bs []byte) error {
 	}
 	totals := len(bs)
 	if int(v0.MessageLength) != totals {
-		return fmt.Errorf("broken message: want=%d, actually=%d", v0.MessageLength, totals)
+		return &errMessageLength{int(v0.MessageLength), totals}
 	}
 	offset := HeaderLength
 	v1 := readInt32(bs, offset)
@@ -73,7 +68,7 @@ func (p *OpKillCursors) Decode(bs []byte) error {
 		offset += 8
 	}
 	if offset != totals {
-		return fmt.Errorf("broken message: read=%d, total=%d", offset, totals)
+		return &errMessageOffset{offset, totals}
 	}
 	p.Header = v0
 	p.Zero = v1

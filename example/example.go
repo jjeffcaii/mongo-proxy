@@ -36,7 +36,7 @@ func main() {
 				break
 			}
 		}
-		log.Printf("security verify success: database=%s.\n", *db)
+		log.Printf("security verify success: database=%s\n", *db)
 		// choose mongo host and port
 		var mgoHostAndPort = "127.0.0.1:27017"
 		// connect backend begin!

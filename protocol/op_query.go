@@ -2,11 +2,10 @@ package protocol
 
 import (
 	"bytes"
-	"fmt"
 )
 
 type OpQuery struct {
-	Header               *Header
+	*Op
 	Flags                int32
 	FullCollectionName   string
 	NumberToSkip         int32
@@ -18,10 +17,6 @@ type OpQuery struct {
 func (p *OpQuery) GetDatabase() *string {
 	// TODO: extract database
 	return nil
-}
-
-func (p *OpQuery) GetHeader() *Header {
-	return p.Header
 }
 
 func (p *OpQuery) Encode() ([]byte, error) {
@@ -40,7 +35,7 @@ func (p *OpQuery) Decode(bs []byte) error {
 	}
 	totals := len(bs)
 	if int(v0.MessageLength) != totals {
-		return fmt.Errorf("broken message: want=%d, actually=%d", v0.MessageLength, totals)
+		return &errMessageLength{int(v0.MessageLength), totals}
 	}
 	offset := HeaderLength
 	v1 := readInt32(bs, offset)
@@ -65,7 +60,7 @@ func (p *OpQuery) Decode(bs []byte) error {
 		offset += size
 	}
 	if offset != totals {
-		return fmt.Errorf("broken message: read=%d, total=%d", offset, totals)
+		return &errMessageOffset{offset, totals}
 	}
 	p.Header = v0
 	p.Flags = v1

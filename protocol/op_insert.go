@@ -2,18 +2,13 @@ package protocol
 
 import (
 	"bytes"
-	"fmt"
 )
 
 type OpInsert struct {
-	Header             *Header
+	*Op
 	Flags              int32
 	FullCollectionName string
 	Documents          []Document
-}
-
-func (p *OpInsert) GetHeader() *Header {
-	return p.Header
 }
 
 func (p *OpInsert) Append(buffer *bytes.Buffer) (int, error) {
@@ -60,7 +55,7 @@ func (p *OpInsert) Decode(bs []byte) error {
 	}
 	totals := len(bs)
 	if int(v0.MessageLength) != totals {
-		return fmt.Errorf("broken message: need=%d, actually=%d", v0.MessageLength, totals)
+		return &errMessageLength{int(v0.MessageLength), totals}
 	}
 	offset := HeaderLength
 	v1 := readInt32(bs, offset)
@@ -77,7 +72,7 @@ func (p *OpInsert) Decode(bs []byte) error {
 		v3 = append(v3, foo)
 	}
 	if offset != totals {
-		return fmt.Errorf("broken message: read=%d, total=%d", offset, totals)
+		return &errMessageOffset{offset, totals}
 	}
 	p.Header = v0
 	p.Flags = v1

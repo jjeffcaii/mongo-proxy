@@ -11,11 +11,11 @@ import (
 type Handler func(context Context)
 
 type Context interface {
+	io.Closer
 	Use(middleware Middleware, allow ...protocol.OpCode) Context
 	Send(bs []byte) error
 	SendBuffer(bf *bytes.Buffer) error
 	Next() (protocol.Message, error)
-	Close() error
 }
 
 // communication endpoint for routing messages.

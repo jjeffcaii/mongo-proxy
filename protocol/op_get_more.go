@@ -2,19 +2,14 @@ package protocol
 
 import (
 	"bytes"
-	"fmt"
 )
 
 type OpGetMore struct {
-	Header             *Header
+	*Op
 	Zero               int32
 	FullCollectionName string
 	NumberToReturn     int32
 	CursorID           int64
-}
-
-func (p *OpGetMore) GetHeader() *Header {
-	return p.Header
 }
 
 func (p *OpGetMore) Encode() ([]byte, error) {
@@ -62,7 +57,7 @@ func (p *OpGetMore) Decode(bs []byte) error {
 	}
 	totals := len(bs)
 	if int(v0.MessageLength) != totals {
-		return fmt.Errorf("broken message: need=%d, actually=%d", v0.MessageLength, totals)
+		return &errMessageLength{int(v0.MessageLength), totals}
 	}
 	offset := HeaderLength
 	v1 := readInt32(bs, offset)
@@ -74,7 +69,7 @@ func (p *OpGetMore) Decode(bs []byte) error {
 	v4 := readInt64(bs, offset)
 	offset += 8
 	if offset != totals {
-		return fmt.Errorf("broken message: read=%d, total=%d", offset, totals)
+		return &errMessageOffset{offset, totals}
 	}
 	p.Header = v0
 	p.Zero = v1

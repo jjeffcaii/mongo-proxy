@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const dict = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/+"
+const randChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/+"
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -13,14 +13,13 @@ func init() {
 
 func CustomRandomString(size int, words string) string {
 	ret := make([]byte, size)
-	l := len(words)
 	for i := 0; i < size; i++ {
-		d := rand.Int() % l
-		ret[i] = words[d]
+		foo := rand.Intn(len(words))
+		ret[i] = words[foo]
 	}
 	return string(ret)
 }
 
 func RandomString(size int) string {
-	return CustomRandomString(size, dict)
+	return CustomRandomString(size, randChars)
 }

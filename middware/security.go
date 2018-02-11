@@ -136,8 +136,10 @@ func mkFailedReply() protocol.Message {
 		Set("codeName", "AuthenticationFailed").
 		Build()
 	ret := &protocol.OpReply{
-		Header: &protocol.Header{
-			OpCode: protocol.OpCodeReply,
+		Op: &protocol.Op{
+			Header: &protocol.Header{
+				OpCode: protocol.OpCodeReply,
+			},
 		},
 		ResponseFlags:  8,
 		NumberReturned: 1,
@@ -185,9 +187,11 @@ func (p *simpleVerifier) saslStart(db *string, req *protocol.OpQuery, res pxmgo.
 			Set("ok", float64(1)).
 			Build()
 		rep := &protocol.OpReply{
-			Header: &protocol.Header{
-				ResponseTo: req.GetHeader().RequestID,
-				OpCode:     protocol.OpCodeReply,
+			Op: &protocol.Op{
+				Header: &protocol.Header{
+					ResponseTo: req.GetHeader().RequestID,
+					OpCode:     protocol.OpCodeReply,
+				},
 			},
 			ResponseFlags:  8,
 			NumberReturned: 1,
@@ -236,8 +240,10 @@ func (p *simpleVerifier) saslContinue(db *string, req *protocol.OpQuery, res pxm
 		Set("ok", float64(1)).
 		Build()
 	rep := &protocol.OpReply{
-		Header: &protocol.Header{
-			OpCode: protocol.OpCodeReply,
+		Op: &protocol.Op{
+			Header: &protocol.Header{
+				OpCode: protocol.OpCodeReply,
+			},
 		},
 		ResponseFlags:  8,
 		NumberReturned: 1,
@@ -268,8 +274,10 @@ func (p *simpleVerifier) saslContinue2(db *string, req *protocol.OpQuery, res px
 		Set("ok", float64(1)).
 		Build()
 	rep := &protocol.OpReply{
-		Header: &protocol.Header{
-			OpCode: protocol.OpCodeReply,
+		Op: &protocol.Op{
+			Header: &protocol.Header{
+				OpCode: protocol.OpCodeReply,
+			},
 		},
 		ResponseFlags:  8,
 		NumberReturned: 1,

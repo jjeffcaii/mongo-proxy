@@ -30,7 +30,7 @@ func (p *mid) allow(req protocol.Message) bool {
 	return found
 }
 
-type vContext struct {
+type implContext struct {
 	conn        net.Conn
 	middlewares []*mid
 	splicer     *splicer
@@ -38,7 +38,7 @@ type vContext struct {
 	reqId       int32
 }
 
-func (p *vContext) Use(middleware Middleware, allows ...protocol.OpCode) Context {
+func (p *implContext) Use(middleware Middleware, allows ...protocol.OpCode) Context {
 	if middleware != nil {
 		p.middlewares = append(p.middlewares, &mid{
 			fn:     middleware,
@@ -48,7 +48,7 @@ func (p *vContext) Use(middleware Middleware, allows ...protocol.OpCode) Context
 	return p
 }
 
-func (p *vContext) Next() (protocol.Message, error) {
+func (p *implContext) Next() (protocol.Message, error) {
 	var bs []byte
 	if data, err := p.splicer.next(); err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func (p *vContext) Next() (protocol.Message, error) {
 	return p.pipe(msg)
 }
 
-func (p *vContext) pipe(req protocol.Message) (protocol.Message, error) {
+func (p *implContext) pipe(req protocol.Message) (protocol.Message, error) {
 	l := len(p.middlewares)
 	if l < 1 {
 		return req, nil
@@ -134,7 +134,7 @@ func doNothing(_ protocol.Message, _ OnRes, next OnNext) {
 }
 
 // 高阶函数, 用于生成next句柄.
-func (p *vContext) genNext(req protocol.Message, index int, ch *chan error) func(error) {
+func (p *implContext) genNext(req protocol.Message, index int, ch *chan error) func(error) {
 	return func(err error) {
 		if err != nil {
 			*ch <- err
@@ -154,7 +154,7 @@ func (p *vContext) genNext(req protocol.Message, index int, ch *chan error) func
 	}
 }
 
-func (p *vContext) sendMessage(msg protocol.Message) error {
+func (p *implContext) sendMessage(msg protocol.Message) error {
 	old := msg.GetHeader().ResponseTo
 	msg.GetHeader().ResponseTo = p.reqId
 	bs, err := msg.Encode()
@@ -166,7 +166,7 @@ func (p *vContext) sendMessage(msg protocol.Message) error {
 	}
 }
 
-func (p *vContext) Send(bs []byte) error {
+func (p *implContext) Send(bs []byte) error {
 	_, err := p.writer.Write(bs)
 	if err != nil {
 		return err
@@ -174,7 +174,7 @@ func (p *vContext) Send(bs []byte) error {
 	return p.writer.Flush()
 }
 
-func (p *vContext) SendBuffer(bf *bytes.Buffer) error {
+func (p *implContext) SendBuffer(bf *bytes.Buffer) error {
 	_, err := bf.WriteTo(p.writer)
 	if err != nil {
 		return err
@@ -182,13 +182,13 @@ func (p *vContext) SendBuffer(bf *bytes.Buffer) error {
 	return p.writer.Flush()
 }
 
-func (p *vContext) Close() error {
+func (p *implContext) Close() error {
 	p.splicer.stop()
 	return p.conn.Close()
 }
 
 func newContext(conn net.Conn) Context {
-	return &vContext{
+	return &implContext{
 		conn:        conn,
 		middlewares: make([]*mid, 0),
 		splicer:     NewSplicer(bufio.NewReader(conn)),

@@ -2,20 +2,15 @@ package protocol
 
 import (
 	"bytes"
-	"fmt"
 )
 
 type OpUpdate struct {
-	Header             *Header
+	*Op
 	Zero               int32
 	FullCollectionName string
 	Flags              int32
 	Selector           Document
 	Update             Document
-}
-
-func (p *OpUpdate) GetHeader() *Header {
-	return p.Header
 }
 
 func (p *OpUpdate) Append(buffer *bytes.Buffer) (int, error) {
@@ -64,7 +59,7 @@ func (p *OpUpdate) Decode(bs []byte) error {
 	}
 	var totals = len(bs)
 	if int(v0.MessageLength) != totals {
-		return fmt.Errorf("broken message: want=%d, actually=%d", v0.MessageLength, totals)
+		return &errMessageLength{int(v0.MessageLength), totals}
 	}
 	offset := HeaderLength
 	v1 := readInt32(bs, offset)
@@ -84,7 +79,7 @@ func (p *OpUpdate) Decode(bs []byte) error {
 	}
 	offset += size
 	if offset != totals {
-		return fmt.Errorf("broken message: read=%d, total=%d", offset, totals)
+		return &errMessageOffset{offset, totals}
 	}
 	p.Header = v0
 	p.Zero = v1

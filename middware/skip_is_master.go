@@ -26,8 +26,10 @@ func SkipIsMaster(req protocol.Message, res pxmgo.OnRes, next pxmgo.OnNext) {
 		Set("ok", float64(1)).
 		Build()
 	var rep = &protocol.OpReply{
-		Header: &protocol.Header{
-			OpCode: protocol.OpCodeReply,
+		Op: &protocol.Op{
+			Header: &protocol.Header{
+				OpCode: protocol.OpCodeReply,
+			},
 		},
 		ResponseFlags:  8,
 		CursorID:       0,

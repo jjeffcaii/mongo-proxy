@@ -2,16 +2,11 @@ package protocol
 
 import (
 	"bytes"
-	"fmt"
 )
 
 type OpMsg struct {
-	Header  *Header
+	*Op
 	Message string
-}
-
-func (p *OpMsg) GetHeader() *Header {
-	return p.Header
 }
 
 func (p *OpMsg) Encode() ([]byte, error) {
@@ -54,13 +49,13 @@ func (p *OpMsg) Decode(bs []byte) error {
 	}
 	totals := len(bs)
 	if int(v0.MessageLength) != totals {
-		return fmt.Errorf("broken message: want=%d, actual=%d", v0.MessageLength, totals)
+		return &errMessageLength{int(v0.MessageLength), totals}
 	}
 	var offset = HeaderLength
 	v1 := readString(bs, offset)
 	offset += len(v1) + 1
 	if offset != totals {
-		return fmt.Errorf("borken message: read=%d, total=%d", offset, totals)
+		return &errMessageOffset{offset, totals}
 	}
 	p.Header = v0
 	p.Message = v1

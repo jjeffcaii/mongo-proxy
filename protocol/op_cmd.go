@@ -2,20 +2,15 @@ package protocol
 
 import (
 	"bytes"
-	"fmt"
 )
 
 type OpCommand struct {
-	Header      *Header
+	*Op
 	Database    string
 	CommandName string
 	Metadata    Document
 	CommandArgs Document
 	InputDocs   []Document
-}
-
-func (p *OpCommand) GetHeader() *Header {
-	return p.Header
 }
 
 func (p *OpCommand) Encode() ([]byte, error) {
@@ -66,7 +61,7 @@ func (p *OpCommand) Decode(bs []byte) error {
 	}
 	totals := len(bs)
 	if int(v0.MessageLength) != totals {
-		return fmt.Errorf("broken message bytes: need=%d, actually=%d", v0.MessageLength, totals)
+		return &errMessageLength{int(v0.MessageLength), totals}
 	}
 	var offset = HeaderLength
 	v1 := readString(bs, offset)
@@ -93,7 +88,7 @@ func (p *OpCommand) Decode(bs []byte) error {
 		v5 = append(v5, doc)
 	}
 	if offset != totals {
-		return fmt.Errorf("broken message: read=%d, total=%d", offset, totals)
+		return &errMessageOffset{offset, totals}
 	}
 	p.Header = v0
 	p.Database = v1

@@ -2,20 +2,15 @@ package protocol
 
 import (
 	"bytes"
-	"fmt"
 )
 
 type OpReply struct {
-	Header         *Header
+	*Op
 	ResponseFlags  int32
 	CursorID       int64
 	StartingFrom   int32
 	NumberReturned int32
 	Documents      []Document
-}
-
-func (p *OpReply) GetHeader() *Header {
-	return p.Header
 }
 
 func (p *OpReply) Append(buffer *bytes.Buffer) (int, error) {
@@ -66,7 +61,7 @@ func (p *OpReply) Decode(bs []byte) error {
 	}
 	totals := len(bs)
 	if int(v0.MessageLength) != totals {
-		return fmt.Errorf("broken message: want=%d, actually=%d", v0.MessageLength, totals)
+		return &errMessageLength{int(v0.MessageLength), totals}
 	}
 	offset := HeaderLength
 	v1 := readInt32(bs, offset)
@@ -87,7 +82,7 @@ func (p *OpReply) Decode(bs []byte) error {
 		v5 = append(v5, doc)
 	}
 	if offset != totals {
-		return fmt.Errorf("broken message: read=%d, total=%d", offset, totals)
+		return &errMessageOffset{offset, totals}
 	}
 	p.Header = v0
 	p.ResponseFlags = v1

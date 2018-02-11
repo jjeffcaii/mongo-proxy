@@ -2,19 +2,14 @@ package protocol
 
 import (
 	"bytes"
-	"fmt"
 )
 
 type OpDelete struct {
-	Header             *Header
+	*Op
 	Zero               int32
 	FullCollectionName string
 	Flags              int32
 	Selector           Document
-}
-
-func (p *OpDelete) GetHeader() *Header {
-	return p.Header
 }
 
 func (p *OpDelete) Encode() ([]byte, error) {
@@ -59,7 +54,7 @@ func (p *OpDelete) Decode(bs []byte) error {
 	}
 	totals := len(bs)
 	if int(v0.MessageLength) != totals {
-		return fmt.Errorf("broken message: want=%d, actually=%d", v0.MessageLength, totals)
+		return &errMessageLength{int(v0.MessageLength), totals}
 	}
 	offset := HeaderLength
 	v1 := readInt32(bs, offset)
@@ -74,7 +69,7 @@ func (p *OpDelete) Decode(bs []byte) error {
 	}
 	offset += size
 	if offset != totals {
-		return fmt.Errorf("broken message: read=%d, total=%d", offset, totals)
+		return &errMessageOffset{offset, totals}
 	}
 	p.Header = v0
 	p.Zero = v1
