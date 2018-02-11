@@ -19,7 +19,7 @@ func (p *mid) allow(req protocol.Message) bool {
 	if p.allows == nil || len(p.allows) < 1 {
 		return true
 	}
-	op := req.GetHeader().OpCode
+	op := req.Header().OpCode
 	var found bool
 	for _, v := range p.allows {
 		if v == op {
@@ -100,7 +100,7 @@ func (p *implContext) Next() (protocol.Message, error) {
 	if err := msg.Decode(bs); err != nil {
 		return nil, err
 	}
-	p.reqId = msg.GetHeader().RequestID
+	p.reqId = msg.Header().RequestID
 	return p.pipe(msg)
 }
 
@@ -155,10 +155,10 @@ func (p *implContext) genNext(req protocol.Message, index int, ch *chan error) f
 }
 
 func (p *implContext) sendMessage(msg protocol.Message) error {
-	old := msg.GetHeader().ResponseTo
-	msg.GetHeader().ResponseTo = p.reqId
+	old := msg.Header().ResponseTo
+	msg.Header().ResponseTo = p.reqId
 	bs, err := msg.Encode()
-	msg.GetHeader().ResponseTo = old
+	msg.Header().ResponseTo = old
 	if err != nil {
 		return err
 	} else {

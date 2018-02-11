@@ -137,7 +137,7 @@ func mkFailedReply() protocol.Message {
 		Build()
 	ret := &protocol.OpReply{
 		Op: &protocol.Op{
-			Header: &protocol.Header{
+			OpHeader: &protocol.Header{
 				OpCode: protocol.OpCodeReply,
 			},
 		},
@@ -188,8 +188,8 @@ func (p *simpleVerifier) saslStart(db *string, req *protocol.OpQuery, res pxmgo.
 			Build()
 		rep := &protocol.OpReply{
 			Op: &protocol.Op{
-				Header: &protocol.Header{
-					ResponseTo: req.GetHeader().RequestID,
+				OpHeader: &protocol.Header{
+					ResponseTo: req.Header().RequestID,
 					OpCode:     protocol.OpCodeReply,
 				},
 			},
@@ -241,7 +241,7 @@ func (p *simpleVerifier) saslContinue(db *string, req *protocol.OpQuery, res pxm
 		Build()
 	rep := &protocol.OpReply{
 		Op: &protocol.Op{
-			Header: &protocol.Header{
+			OpHeader: &protocol.Header{
 				OpCode: protocol.OpCodeReply,
 			},
 		},
@@ -275,7 +275,7 @@ func (p *simpleVerifier) saslContinue2(db *string, req *protocol.OpQuery, res px
 		Build()
 	rep := &protocol.OpReply{
 		Op: &protocol.Op{
-			Header: &protocol.Header{
+			OpHeader: &protocol.Header{
 				OpCode: protocol.OpCodeReply,
 			},
 		},

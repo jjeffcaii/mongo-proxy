@@ -1,9 +1,9 @@
 package protocol
 
 type Op struct {
-	Header *Header
+	OpHeader *Header
 }
 
-func (p *Op) GetHeader() *Header {
-	return p.Header
+func (p *Op) Header() *Header {
+	return p.OpHeader
 }

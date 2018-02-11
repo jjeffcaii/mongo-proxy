@@ -31,7 +31,7 @@ type Pair = bson.Pair
 
 type Message interface {
 	Buffered
-	GetHeader() *Header
+	Header() *Header
 }
 
 type DatabaseSupport interface {
@@ -42,11 +42,4 @@ type Buffered interface {
 	Append(buffer *bytes.Buffer) (int, error)
 	Encode() ([]byte, error)
 	Decode(bs []byte) error
-}
-
-type Header struct {
-	MessageLength int32
-	RequestID     int32
-	ResponseTo    int32
-	OpCode        OpCode
 }

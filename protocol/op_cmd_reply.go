@@ -31,10 +31,10 @@ func (p *OpCommandReply) Append(buffer *bytes.Buffer) (int, error) {
 	}
 	wrote += HeaderLength
 	bf := &bytes.Buffer{}
-	old := p.Header.MessageLength
-	p.Header.MessageLength = int32(wrote)
-	defer func() { p.Header.MessageLength = old }()
-	if _, err := p.Header.Append(bf); err != nil {
+	old := p.OpHeader.MessageLength
+	p.OpHeader.MessageLength = int32(wrote)
+	defer func() { p.OpHeader.MessageLength = old }()
+	if _, err := p.OpHeader.Append(bf); err != nil {
 		return 0, err
 	}
 	if _, err := cache.WriteTo(bf); err != nil {
@@ -78,7 +78,7 @@ func (p *OpCommandReply) Decode(bs []byte) error {
 	if offset != totals {
 		return &errMessageOffset{offset, totals}
 	}
-	p.Header = v0
+	p.OpHeader = v0
 	p.Metadata = v1
 	p.CommandReply = v2
 	p.OutputDocs = v3

@@ -48,10 +48,10 @@ func Pump(source Context, target Context) {
 				}
 				break
 			}
-			old := msg.GetHeader().RequestID
-			msg.GetHeader().RequestID = 0
+			old := msg.Header().RequestID
+			msg.Header().RequestID = 0
 			bs, err := msg.Encode()
-			msg.GetHeader().RequestID = old
+			msg.Header().RequestID = old
 			if err != nil {
 				log.Println("encode target message failed: ", err)
 				break

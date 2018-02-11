@@ -29,14 +29,14 @@ func (p *OpKillCursors) Append(buffer *bytes.Buffer) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	old := p.Header.MessageLength
+	old := p.OpHeader.MessageLength
 	wrote += HeaderLength
-	p.Header.MessageLength = int32(wrote)
+	p.OpHeader.MessageLength = int32(wrote)
 	defer func() {
-		p.Header.MessageLength = old
+		p.OpHeader.MessageLength = old
 	}()
 	bf := &bytes.Buffer{}
-	if _, err := p.Header.Append(bf); err != nil {
+	if _, err := p.OpHeader.Append(bf); err != nil {
 		return 0, err
 	}
 	if _, err := cache.WriteTo(bf); err != nil {
@@ -70,7 +70,7 @@ func (p *OpKillCursors) Decode(bs []byte) error {
 	if offset != totals {
 		return &errMessageOffset{offset, totals}
 	}
-	p.Header = v0
+	p.OpHeader = v0
 	p.Zero = v1
 	p.NumberOfCursorIDs = v2
 	p.CursorIDs = v3
