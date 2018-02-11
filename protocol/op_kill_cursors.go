@@ -76,3 +76,9 @@ func (p *OpKillCursors) Decode(bs []byte) error {
 	p.CursorIDs = v3
 	return nil
 }
+
+func NewOpKillCursors() *OpKillCursors {
+	return &OpKillCursors{
+		Op: &Op{},
+	}
+}

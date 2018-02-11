@@ -89,3 +89,9 @@ func (p *OpUpdate) Decode(bs []byte) error {
 	p.Update = v5
 	return nil
 }
+
+func NewOpUpdate() *OpUpdate {
+	return &OpUpdate{
+		Op: &Op{},
+	}
+}

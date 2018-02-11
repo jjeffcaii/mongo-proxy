@@ -78,3 +78,9 @@ func (p *OpDelete) Decode(bs []byte) error {
 	p.Selector = v4
 	return nil
 }
+
+func NewOpDelete() *OpDelete {
+	return &OpDelete{
+		Op: &Op{},
+	}
+}

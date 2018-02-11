@@ -4,166 +4,52 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"log"
 	"net"
+	"sync/atomic"
 
 	"github.com/jjeffcaii/mongo-proxy/protocol"
 )
 
-type mid struct {
-	fn     Middleware
-	allows []protocol.OpCode
+type errInvalidOp struct {
+	code protocol.OpCode
 }
 
-func (p *mid) allow(req protocol.Message) bool {
-	if p.allows == nil || len(p.allows) < 1 {
-		return true
-	}
-	op := req.Header().OpCode
-	var found bool
-	for _, v := range p.allows {
-		if v == op {
-			found = true
-			break
-		}
-	}
-	return found
+func (p *errInvalidOp) Error() string {
+	return fmt.Sprintf("bad message with opcode %d", p.code)
 }
 
 type implContext struct {
 	conn        net.Conn
-	middlewares []*mid
+	middlewares []Middleware
 	splicer     *splicer
 	writer      *bufio.Writer
 	reqId       int32
+	queue       chan protocol.Message
 }
 
-func (p *implContext) Use(middleware Middleware, allows ...protocol.OpCode) Context {
-	if middleware != nil {
-		p.middlewares = append(p.middlewares, &mid{
-			fn:     middleware,
-			allows: allows,
-		})
+func (p *implContext) Use(middlewares ...Middleware) Context {
+	for _, it := range middlewares {
+		if it != nil {
+			p.middlewares = append(p.middlewares, it)
+		}
 	}
 	return p
 }
 
-func (p *implContext) Next() (protocol.Message, error) {
-	var bs []byte
-	if data, err := p.splicer.next(); err != nil {
-		return nil, err
-	} else {
-		bs = data.Bytes()
-	}
-	var msg protocol.Message
-	opcode := protocol.ParseOpCode(bs)
-	switch opcode {
-	case protocol.OpCodeReply:
-		msg = &protocol.OpReply{}
-		break
-	case protocol.OpCodeMsg:
-		msg = &protocol.OpMsg{}
-		break
-	case protocol.OpCodeUpdate:
-		msg = &protocol.OpUpdate{}
-		break
-	case protocol.OpCodeInsert:
-		msg = &protocol.OpInsert{}
-		break
-	case protocol.OpReserved:
-		// TODO: RESERVED
-		break
-	case protocol.OpCodeQuery:
-		msg = &protocol.OpQuery{}
-		break
-	case protocol.OpCodeGetMore:
-		msg = &protocol.OpGetMore{}
-		break
-	case protocol.OpCodeDel:
-		msg = &protocol.OpDelete{}
-		break
-	case protocol.OpCodeKillCursor:
-		msg = &protocol.OpKillCursors{}
-		break
-	case protocol.OpCodeCmd:
-		msg = &protocol.OpCommand{}
-		break
-	case protocol.OpCodeCmdReply:
-		msg = &protocol.OpCommandReply{}
-		break
-	default:
-		break
-	}
-	if msg == nil {
-		return nil, fmt.Errorf("bad message with opcode %d", opcode)
-	}
-	if err := msg.Decode(bs); err != nil {
-		return nil, err
-	}
-	p.reqId = msg.Header().RequestID
-	return p.pipe(msg)
+func (p *implContext) Next() <-chan protocol.Message {
+	return p.queue
 }
 
-func (p *implContext) pipe(req protocol.Message) (protocol.Message, error) {
-	l := len(p.middlewares)
-	if l < 1 {
-		return req, nil
-	}
-	ch := make(chan error)
-	defer close(ch)
-	first := p.middlewares[0]
-	if first.allow(req) {
-		go first.fn(req, p.sendMessage, p.genNext(req, 0, &ch))
-	} else {
-		go doNothing(req, p.sendMessage, p.genNext(req, 0, &ch))
-	}
-	err := <-ch
-	switch err {
-	case EOF:
-		return req, nil
-	case END:
-		return p.Next()
-	default:
-		log.Println("middleware execute failed: ", err)
-		return p.Next()
-	}
-}
-
-func doNothing(_ protocol.Message, _ OnRes, next OnNext) {
-	next(nil)
-}
-
-// 高阶函数, 用于生成next句柄.
-func (p *implContext) genNext(req protocol.Message, index int, ch *chan error) func(error) {
-	return func(err error) {
-		if err != nil {
-			*ch <- err
-			return
-		}
-		i := index + 1
-		if i >= len(p.middlewares) {
-			*ch <- EOF
-			return
-		}
-		mid := p.middlewares[i]
-		if mid.allow(req) {
-			mid.fn(req, p.sendMessage, p.genNext(req, i, ch))
-		} else {
-			doNothing(req, p.sendMessage, p.genNext(req, i, ch))
-		}
-	}
-}
-
-func (p *implContext) sendMessage(msg protocol.Message) error {
-	old := msg.Header().ResponseTo
-	msg.Header().ResponseTo = p.reqId
+func (p *implContext) SendMessage(msg protocol.Message) error {
+	addrRespTo := &(msg.Header().ResponseTo)
+	old := atomic.LoadInt32(addrRespTo)
+	atomic.StoreInt32(addrRespTo, p.reqId)
 	bs, err := msg.Encode()
-	msg.Header().ResponseTo = old
+	atomic.StoreInt32(addrRespTo, old)
 	if err != nil {
 		return err
-	} else {
-		return p.Send(bs)
 	}
+	return p.Send(bs)
 }
 
 func (p *implContext) Send(bs []byte) error {
@@ -183,15 +69,93 @@ func (p *implContext) SendBuffer(bf *bytes.Buffer) error {
 }
 
 func (p *implContext) Close() error {
+	close(p.queue)
 	p.splicer.stop()
 	return p.conn.Close()
 }
 
+func (p *implContext) nextMessage() error {
+	var bs []byte
+	data, err := p.splicer.next()
+	if err != nil {
+		return err
+	}
+	bs = data.Bytes()
+	var msg protocol.Message
+	opcode := protocol.ParseOpCode(bs)
+	switch opcode {
+	case protocol.OpCodeReply:
+		msg = protocol.NewOpReply()
+		break
+	case protocol.OpCodeMsg:
+		msg = protocol.NewOpMsg()
+		break
+	case protocol.OpCodeUpdate:
+		msg = protocol.NewOpUpdate()
+		break
+	case protocol.OpCodeInsert:
+		msg = protocol.NewOpInsert()
+		break
+	case protocol.OpReserved:
+		// TODO: RESERVED
+		break
+	case protocol.OpCodeQuery:
+		msg = protocol.NewOpQuery()
+		break
+	case protocol.OpCodeGetMore:
+		msg = protocol.NewOpGetMore()
+		break
+	case protocol.OpCodeDel:
+		msg = protocol.NewOpDelete()
+		break
+	case protocol.OpCodeKillCursor:
+		msg = protocol.NewOpKillCursors()
+		break
+	case protocol.OpCodeCmd:
+		msg = protocol.NewOpCommand()
+		break
+	case protocol.OpCodeCmdReply:
+		msg = protocol.NewOpCommandReply()
+		break
+	default:
+		break
+	}
+	if msg == nil {
+		return &errInvalidOp{opcode}
+	}
+	if err := msg.Decode(bs); err != nil {
+		return err
+	}
+	p.reqId = msg.Header().RequestID
+	for _, it := range p.middlewares {
+		err = it.Handle(p, msg)
+		if err != nil {
+			break
+		}
+	}
+	if err == Ignore {
+		return nil
+	}
+	if err != nil && err != EOF {
+		return err
+	}
+	return nil
+}
+
 func newContext(conn net.Conn) Context {
-	return &implContext{
+	ctx := &implContext{
 		conn:        conn,
-		middlewares: make([]*mid, 0),
+		middlewares: make([]Middleware, 0),
 		splicer:     NewSplicer(bufio.NewReader(conn)),
 		writer:      bufio.NewWriter(conn),
+		queue:       make(chan protocol.Message),
 	}
+	go func() {
+		for {
+			if err := ctx.nextMessage(); err != nil {
+				break
+			}
+		}
+	}()
+	return ctx
 }

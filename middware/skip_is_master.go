@@ -7,25 +7,29 @@ import (
 	"github.com/jjeffcaii/mongo-proxy/protocol"
 )
 
-func SkipIsMaster(req protocol.Message, res pxmgo.OnRes, next pxmgo.OnNext) {
-	q, _ := req.(*protocol.OpQuery)
-	m := protocol.ToMap(q.Query)
-	if m["ismaster"] == nil {
-		next(nil)
-		return
+type SkipIsMaster struct {
+}
+
+func (p *SkipIsMaster) Handle(ctx pxmgo.Context, req protocol.Message) error {
+	q, ok := req.(*protocol.OpQuery)
+	if !ok {
+		return nil
+	}
+	if _, ok := protocol.Load(q.Query, "ismaster"); !ok {
+		return nil
 	}
 	var doc = protocol.NewDocument().
 		Set("ismaster", true).
 		Set("maxBsonObjectSize", int32(16777216)).
 		Set("maxMessageSizeBytes", int32(48000000)).
 		Set("maxWriteBatchSize", int32(1000)).
-		Set("localTime", time.Now().UnixNano()/1000000).
+		Set("localTime", time.Now().UnixNano()/1e6).
 		Set("maxWireVersion", int32(5)).
 		Set("minWireVersion", int32(0)).
 		Set("readOnly", false).
 		Set("ok", float64(1)).
 		Build()
-	var rep = &protocol.OpReply{
+	if err := ctx.SendMessage(&protocol.OpReply{
 		Op: &protocol.Op{
 			OpHeader: &protocol.Header{
 				OpCode: protocol.OpCodeReply,
@@ -35,7 +39,8 @@ func SkipIsMaster(req protocol.Message, res pxmgo.OnRes, next pxmgo.OnNext) {
 		CursorID:       0,
 		NumberReturned: 1,
 		Documents:      []protocol.Document{doc},
+	}); err != nil {
+		return err
 	}
-	res(rep)
-	next(pxmgo.END)
+	return pxmgo.Ignore
 }

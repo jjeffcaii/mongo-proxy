@@ -78,3 +78,10 @@ func (p *OpGetMore) Decode(bs []byte) error {
 	p.CursorID = v4
 	return nil
 }
+
+func NewOpGetMore() *OpGetMore {
+	return &OpGetMore{
+		Op: &Op{},
+	}
+
+}

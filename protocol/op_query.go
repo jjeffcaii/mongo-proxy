@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"bytes"
+	"strings"
 )
 
 type OpQuery struct {
@@ -15,8 +16,9 @@ type OpQuery struct {
 }
 
 func (p *OpQuery) GetDatabase() *string {
-	// TODO: extract database
-	return nil
+	i := strings.Index(p.FullCollectionName, ".")
+	db := p.FullCollectionName[:i]
+	return &db
 }
 
 func (p *OpQuery) Encode() ([]byte, error) {
@@ -102,4 +104,10 @@ func (p *OpQuery) Append(buffer *bytes.Buffer) (int, error) {
 		return 0, err
 	}
 	return wrote, nil
+}
+
+func NewOpQuery() *OpQuery {
+	return &OpQuery{
+		Op: &Op{},
+	}
 }

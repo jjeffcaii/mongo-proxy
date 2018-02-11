@@ -109,6 +109,15 @@ func ParseOpCode(bs []byte) OpCode {
 	return OpCode(binary.LittleEndian.Uint32(bs[12:16]))
 }
 
+func Load(d Document, key string) (interface{}, bool) {
+	for _, p := range d {
+		if p.Key == key {
+			return p.Val, true
+		}
+	}
+	return nil, false
+}
+
 func ToMap(d Document) map[string]interface{} {
 	c := make(map[string]interface{})
 	for _, p := range d {

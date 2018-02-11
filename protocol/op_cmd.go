@@ -98,3 +98,9 @@ func (p *OpCommand) Decode(bs []byte) error {
 	p.InputDocs = v5
 	return nil
 }
+
+func NewOpCommand() *OpCommand {
+	return &OpCommand{
+		Op: &Op{},
+	}
+}

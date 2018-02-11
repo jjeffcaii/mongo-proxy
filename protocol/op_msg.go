@@ -61,3 +61,7 @@ func (p *OpMsg) Decode(bs []byte) error {
 	p.Message = v1
 	return nil
 }
+
+func NewOpMsg() *OpMsg {
+	return &OpMsg{Op: &Op{}}
+}

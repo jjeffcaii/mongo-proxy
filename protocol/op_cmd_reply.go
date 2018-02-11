@@ -84,3 +84,9 @@ func (p *OpCommandReply) Decode(bs []byte) error {
 	p.OutputDocs = v3
 	return nil
 }
+
+func NewOpCommandReply() *OpCommandReply {
+	return &OpCommandReply{
+		Op: &Op{},
+	}
+}

@@ -92,3 +92,9 @@ func (p *OpReply) Decode(bs []byte) error {
 	p.Documents = v5
 	return nil
 }
+
+func NewOpReply() *OpReply {
+	return &OpReply{
+		Op: &Op{},
+	}
+}

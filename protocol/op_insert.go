@@ -79,5 +79,10 @@ func (p *OpInsert) Decode(bs []byte) error {
 	p.FullCollectionName = v2
 	p.Documents = v3
 	return nil
+}
 
+func NewOpInsert() *OpInsert {
+	return &OpInsert{
+		Op: &Op{},
+	}
 }
