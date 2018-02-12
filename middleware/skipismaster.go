@@ -1,4 +1,4 @@
-package middware
+package middleware
 
 import (
 	"time"
@@ -7,10 +7,16 @@ import (
 	"github.com/jjeffcaii/mongo-proxy/protocol"
 )
 
-type SkipIsMaster struct {
+var instSkipIsMaster *skipIsMaster
+
+func init() {
+	instSkipIsMaster = &skipIsMaster{}
 }
 
-func (p *SkipIsMaster) Handle(ctx pxmgo.Context, req protocol.Message) error {
+type skipIsMaster struct {
+}
+
+func (p *skipIsMaster) Handle(ctx pxmgo.Context, req protocol.Message) error {
 	q, ok := req.(*protocol.OpQuery)
 	if !ok {
 		return nil
@@ -43,4 +49,8 @@ func (p *SkipIsMaster) Handle(ctx pxmgo.Context, req protocol.Message) error {
 		return err
 	}
 	return pxmgo.Ignore
+}
+
+func NewSkipIsMaster() pxmgo.Middleware {
+	return instSkipIsMaster
 }

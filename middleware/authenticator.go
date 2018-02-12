@@ -1,4 +1,4 @@
-package middware
+package middleware
 
 import (
 	"crypto/md5"
@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sync"
 
 	"github.com/goxmpp/sasl/scram"
 	"github.com/jjeffcaii/mongo-proxy"
@@ -38,7 +37,7 @@ type simpleAuthenticator struct {
 	conversationId int32
 	getCredential  func(string) (*Identifier, error)
 	db             *string
-	notifier       *sync.WaitGroup
+	notifier       chan bool
 }
 
 func (p *simpleAuthenticator) Wait() (db *string, ok bool) {
@@ -48,7 +47,7 @@ func (p *simpleAuthenticator) Wait() (db *string, ok bool) {
 	if p.step == success {
 		return p.db, true
 	}
-	p.notifier.Wait()
+	<-p.notifier
 	if p.step == success {
 		return p.db, true
 	}
@@ -62,7 +61,7 @@ func (p *simpleAuthenticator) Handle(ctx pxmgo.Context, req protocol.Message) er
 	}
 	log.Println("auth failed:", err)
 	p.step = failed
-	p.notifier.Done()
+	p.notifier <- false
 	body := protocol.NewDocument().
 		Set("ok", int64(0)).
 		Set("errmsg", "authentication failed").
@@ -137,7 +136,7 @@ func (p *simpleAuthenticator) auth(ctx pxmgo.Context, req protocol.Message) erro
 			return err
 		}
 		p.step = success
-		p.notifier.Done()
+		p.notifier <- true
 		return pxmgo.Ignore
 	}
 	return errBadAuthRequest
@@ -263,14 +262,12 @@ type Identifier struct {
 }
 
 func NewAuthenticator(fn func(db string) (*Identifier, error)) pxmgo.Authenticator {
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
 	return &simpleAuthenticator{
 		step:           waitStart,
 		checker:        scram.NewServer(sha1.New, gen),
 		conversationId: 0,
 		getCredential:  fn,
-		notifier:       wg,
+		notifier:       make(chan bool),
 	}
 }
 

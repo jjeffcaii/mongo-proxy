@@ -5,38 +5,44 @@ import (
 	"log"
 
 	"github.com/jjeffcaii/mongo-proxy"
-	"github.com/jjeffcaii/mongo-proxy/middware"
+	"github.com/jjeffcaii/mongo-proxy/middleware"
 )
 
 func main() {
-	server := pxmgo.NewServer(":27018")
+	proxy := pxmgo.NewServer(":27018")
 	log.Println("proxy server start")
-	validator := func(db string) (*middware.Identifier, error) {
+	// custom your auth validator.
+	validator := func(db string) (*middleware.Identifier, error) {
+		// use foo/bar to login test db.
 		if "test" == db {
 			user, passwd := "foo", "bar"
-			return &middware.Identifier{
+			return &middleware.Identifier{
 				Username: user,
 				Password: passwd,
 			}, nil
 		}
 		return nil, fmt.Errorf("access deny for db: %s", db)
 	}
-	server.Serve(func(c1 pxmgo.Context) {
+	// begin serve.
+	proxy.Serve(func(c1 pxmgo.Context) {
+		// skip is master
+		skipIsMaster := middleware.NewSkipIsMaster()
 		// create authenticator.
-		authenticator := middware.NewAuthenticator(validator)
+		authenticator := middleware.NewAuthenticator(validator)
 		// register frontend context middlewares.
-		c1.Use(&middware.SkipIsMaster{}, authenticator)
+		c1.Use(skipIsMaster, authenticator)
 		// wait for auth finish.
 		db, ok := authenticator.Wait()
 		if !ok {
+			log.Println("authenticate failed")
 			return
 		}
 		log.Printf("connect database %s success\n", *db)
-		// choose mongo host and port
-		var mgoHostAndPort = "127.0.0.1:27017"
-		// connect backend begin!
-		backend := pxmgo.NewBackend(mgoHostAndPort)
-		backend.Serve(func(c2 pxmgo.Context) {
+		// choose mongo host and port.
+		var mongoURI = "127.0.0.1:27017"
+		// connect backend begin.
+		pxmgo.NewBackend(mongoURI).Serve(func(c2 pxmgo.Context) {
+			// just pump frontend and backend.
 			pxmgo.Pump(c1, c2)
 		})
 	})
