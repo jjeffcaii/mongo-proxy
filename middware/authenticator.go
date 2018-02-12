@@ -56,7 +56,7 @@ type simpleAuthenticator struct {
 	step           saslstep
 	checker        *scram.Server
 	conversationId int32
-	getCredential  func(database string) (username *string, password *string, err error)
+	getCredential  func(string) (*pxmgo.Identifier, error)
 	db             *string
 	notifier       *sync.WaitGroup
 }
@@ -161,11 +161,11 @@ func (p *simpleAuthenticator) saslStart(ctx pxmgo.Context, db string, req *proto
 	if err := p.checker.ParseClientFirst(payload); err != nil {
 		return err
 	}
-	username, _, err := p.getCredential(db)
+	identifier, err := p.getCredential(db)
 	if err != nil {
 		return err
 	}
-	if p.checker.UserName() != *username {
+	if p.checker.UserName() != identifier.Username {
 		return fmt.Errorf("invalid username %s", p.checker.UserName())
 	}
 	var s1 = p.checker.First()
@@ -202,11 +202,11 @@ func (p *simpleAuthenticator) saslContinue(ctx pxmgo.Context, db string, req *pr
 	} else {
 		return errAuthReq
 	}
-	username, password, err := p.getCredential(db)
+	identifier, err := p.getCredential(db)
 	if err != nil {
 		return err
 	}
-	pwd := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s:mongo:%s", *username, *password))))
+	pwd := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s:mongo:%s", identifier.Username, identifier.Password))))
 	p.checker.SaltPassword([]byte(pwd))
 	if err := p.checker.CheckClientFinal(payload); err != nil {
 		log.Println("check client final faile:", err)
@@ -262,7 +262,7 @@ func (p *simpleAuthenticator) saslContinue2(ctx pxmgo.Context, db string, req *p
 	return nil
 }
 
-func NewAuthenticator(fn func(database string) (username *string, password *string, err error)) pxmgo.Authenticator {
+func NewAuthenticator(fn func(db string) (*pxmgo.Identifier, error)) pxmgo.Authenticator {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	return &simpleAuthenticator{

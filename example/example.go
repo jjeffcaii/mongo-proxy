@@ -9,15 +9,17 @@ import (
 )
 
 func main() {
-	var port = 27018
-	server := pxmgo.NewServer(fmt.Sprintf(":%d", port))
-	log.Printf("start proxy server: port=%d\n", port)
-	validator := func(db string) (*string, *string, error) {
+	server := pxmgo.NewServer(":27018")
+	log.Println("proxy server start")
+	validator := func(db string) (*pxmgo.Identifier, error) {
 		if "test" == db {
 			user, passwd := "foo", "bar"
-			return &user, &passwd, nil
+			return &pxmgo.Identifier{
+				Username: user,
+				Password: passwd,
+			}, nil
 		}
-		return nil, nil, fmt.Errorf("access deny for db: %s", db)
+		return nil, fmt.Errorf("access deny for db: %s", db)
 	}
 	server.Serve(func(c1 pxmgo.Context) {
 		// create authenticator.

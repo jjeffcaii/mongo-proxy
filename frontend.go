@@ -11,7 +11,7 @@ type implFrontend struct {
 	listener net.Listener
 }
 
-func (p *implFrontend) Serve(handler Handler) error {
+func (p *implFrontend) Serve(handler func(Context)) error {
 	if p.listener != nil {
 		return errors.New("listener has been created already")
 	}

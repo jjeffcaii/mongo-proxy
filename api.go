@@ -8,8 +8,6 @@ import (
 	"github.com/jjeffcaii/mongo-proxy/protocol"
 )
 
-type Handler func(context Context)
-
 type Context interface {
 	io.Closer
 	Use(middlewares ...Middleware) Context
@@ -19,14 +17,19 @@ type Context interface {
 	Next() <-chan protocol.Message
 }
 
-// communication endpoint for routing messages.
+// Endpoint communicate endpoint for routing messages.
 type Endpoint interface {
 	io.Closer
-	Serve(handler Handler) error
+	Serve(handler func(ctx Context)) error
 }
 
 var EOF = io.EOF
 var Ignore = errors.New("skip message")
+
+type Identifier struct {
+	Username string
+	Password string
+}
 
 type Authenticator interface {
 	Middleware

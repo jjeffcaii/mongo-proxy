@@ -13,7 +13,7 @@ type staticBackend struct {
 	conn  net.Conn
 }
 
-func (p *staticBackend) Serve(handler Handler) error {
+func (p *staticBackend) Serve(handler func(Context)) error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	if p.conn != nil {
@@ -24,7 +24,7 @@ func (p *staticBackend) Serve(handler Handler) error {
 		return err
 	}
 	p.conn = tcpConn
-	go func(h Handler, c Context) {
+	go func(h func(Context), c Context) {
 		h(c)
 	}(handler, newContext(tcpConn))
 	return nil
