@@ -28,35 +28,15 @@ const (
 )
 
 var (
-	failedResponse *protocol.OpReply
-	errAuthReq     = errors.New("auth failed: illegal auth request")
-	errAuthFailed  = errors.New("auth failed")
+	errBadAuthRequest = errors.New("bad auth request")
+	errAuthFailed     = errors.New("auth failed")
 )
-
-func init() {
-	body := protocol.NewDocument().
-		Set("ok", int64(0)).
-		Set("errmsg", "authentication failed").
-		Set("code", int32(18)).
-		Set("codeName", "AuthenticationFailed").
-		Build()
-	failedResponse = &protocol.OpReply{
-		Op: &protocol.Op{
-			OpHeader: &protocol.Header{
-				OpCode: protocol.OpCodeReply,
-			},
-		},
-		ResponseFlags:  8,
-		NumberReturned: 1,
-		Documents:      []protocol.Document{body},
-	}
-}
 
 type simpleAuthenticator struct {
 	step           saslstep
 	checker        *scram.Server
 	conversationId int32
-	getCredential  func(string) (*pxmgo.Identifier, error)
+	getCredential  func(string) (*Identifier, error)
 	db             *string
 	notifier       *sync.WaitGroup
 }
@@ -83,6 +63,22 @@ func (p *simpleAuthenticator) Handle(ctx pxmgo.Context, req protocol.Message) er
 	log.Println("auth failed:", err)
 	p.step = failed
 	p.notifier.Done()
+	body := protocol.NewDocument().
+		Set("ok", int64(0)).
+		Set("errmsg", "authentication failed").
+		Set("code", int32(18)).
+		Set("codeName", "AuthenticationFailed").
+		Build()
+	failedResponse := &protocol.OpReply{
+		Op: &protocol.Op{
+			OpHeader: &protocol.Header{
+				OpCode: protocol.OpCodeReply,
+			},
+		},
+		ResponseFlags:  8,
+		NumberReturned: 1,
+		Documents:      []protocol.Document{body},
+	}
 	if err := ctx.SendMessage(failedResponse); err != nil {
 		log.Println("send AuthFailed response error:", err)
 	}
@@ -92,11 +88,11 @@ func (p *simpleAuthenticator) Handle(ctx pxmgo.Context, req protocol.Message) er
 func (p *simpleAuthenticator) auth(ctx pxmgo.Context, req protocol.Message) error {
 	q, ok := req.(*protocol.OpQuery)
 	if !ok {
-		return errAuthReq
+		return errBadAuthRequest
 	}
 	tbl, ok := q.TableName()
 	if !ok {
-		return errAuthReq
+		return errBadAuthRequest
 	}
 	if p.step == success {
 		// 检查要访问的DB是否授权
@@ -114,7 +110,7 @@ func (p *simpleAuthenticator) auth(ctx pxmgo.Context, req protocol.Message) erro
 	}
 	if p.step == waitStart {
 		if _, ok := protocol.Load(q.Query, "saslStart"); !ok {
-			return errAuthReq
+			return errBadAuthRequest
 		}
 		err := p.saslStart(ctx, tbl.Database, q)
 		if err != nil {
@@ -125,7 +121,7 @@ func (p *simpleAuthenticator) auth(ctx pxmgo.Context, req protocol.Message) erro
 	}
 	if p.step == waitContinue {
 		if _, ok := protocol.Load(q.Query, "saslContinue"); !ok {
-			return errAuthReq
+			return errBadAuthRequest
 		}
 		if err := p.saslContinue(ctx, tbl.Database, q); err != nil {
 			return err
@@ -135,7 +131,7 @@ func (p *simpleAuthenticator) auth(ctx pxmgo.Context, req protocol.Message) erro
 	}
 	if p.step == waitContinue2 {
 		if _, ok := protocol.Load(q.Query, "saslContinue"); !ok {
-			return errAuthReq
+			return errBadAuthRequest
 		}
 		if err := p.saslContinue2(ctx, tbl.Database, q); err != nil {
 			return err
@@ -144,7 +140,7 @@ func (p *simpleAuthenticator) auth(ctx pxmgo.Context, req protocol.Message) erro
 		p.notifier.Done()
 		return pxmgo.Ignore
 	}
-	return errAuthReq
+	return errBadAuthRequest
 }
 
 func (p *simpleAuthenticator) saslStart(ctx pxmgo.Context, db string, req *protocol.OpQuery) error {
@@ -156,7 +152,7 @@ func (p *simpleAuthenticator) saslStart(ctx pxmgo.Context, db string, req *proto
 	if v, ok := (m["payload"]).(bson.Binary); ok {
 		payload = []byte(v)
 	} else {
-		return errAuthReq
+		return errBadAuthRequest
 	}
 	if err := p.checker.ParseClientFirst(payload); err != nil {
 		return err
@@ -194,13 +190,13 @@ func (p *simpleAuthenticator) saslStart(ctx pxmgo.Context, db string, req *proto
 func (p *simpleAuthenticator) saslContinue(ctx pxmgo.Context, db string, req *protocol.OpQuery) error {
 	m := protocol.ToMap(req.Query)
 	if cid, ok := m["conversationId"].(bson.Int32); !ok || int32(cid) != p.conversationId {
-		return errAuthReq
+		return errBadAuthRequest
 	}
 	var payload []byte
 	if b, ok := m["payload"].(bson.Binary); ok {
 		payload = b
 	} else {
-		return errAuthReq
+		return errBadAuthRequest
 	}
 	identifier, err := p.getCredential(db)
 	if err != nil {
@@ -236,10 +232,10 @@ func (p *simpleAuthenticator) saslContinue(ctx pxmgo.Context, db string, req *pr
 func (p *simpleAuthenticator) saslContinue2(ctx pxmgo.Context, db string, req *protocol.OpQuery) error {
 	v, ok := protocol.Load(req.Query, "conversationId")
 	if !ok {
-		return errAuthReq
+		return errBadAuthRequest
 	}
 	if vv, ok := v.(bson.Int32); !ok || p.conversationId != int32(vv) {
-		return errAuthReq
+		return errBadAuthRequest
 	}
 	doc := protocol.NewDocument().
 		Set("conversationId", p.conversationId).
@@ -258,11 +254,15 @@ func (p *simpleAuthenticator) saslContinue2(ctx pxmgo.Context, db string, req *p
 		Documents:      []protocol.Document{doc},
 	}
 	p.db = &db
-	ctx.SendMessage(rep)
-	return nil
+	return ctx.SendMessage(rep)
 }
 
-func NewAuthenticator(fn func(db string) (*pxmgo.Identifier, error)) pxmgo.Authenticator {
+type Identifier struct {
+	Username string
+	Password string
+}
+
+func NewAuthenticator(fn func(db string) (*Identifier, error)) pxmgo.Authenticator {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	return &simpleAuthenticator{

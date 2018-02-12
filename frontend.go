@@ -23,11 +23,15 @@ func (p *implFrontend) Serve(handler func(Context)) error {
 	p.listener = listen
 	for {
 		c, err := p.listener.Accept()
-		if err == nil {
-			go handler(newContext(c))
-		} else {
-			log.Println("cannot accept income connection.", err)
+		if err != nil {
+			log.Println("accept connection failed:", err)
+			break
 		}
+		go func() {
+			ctx := newContext(c)
+			defer ctx.Close()
+			handler(ctx)
+		}()
 	}
 	return nil
 }

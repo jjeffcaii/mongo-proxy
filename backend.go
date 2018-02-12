@@ -2,6 +2,8 @@ package pxmgo
 
 import (
 	"errors"
+	"io"
+	"log"
 	"net"
 	"sync"
 	"time"
@@ -21,13 +23,14 @@ func (p *staticBackend) Serve(handler func(Context)) error {
 	}
 	tcpConn, err := net.DialTimeout("tcp", p.addr, 15*time.Second)
 	if err != nil {
+		log.Println("connect backend failed:", err)
 		return err
 	}
 	p.conn = tcpConn
-	go func(h func(Context), c Context) {
-		h(c)
-	}(handler, newContext(tcpConn))
-	return nil
+	ctx := newContext(tcpConn)
+	defer ctx.Close()
+	handler(ctx)
+	return io.EOF
 }
 
 func (p *staticBackend) Close() error {

@@ -16,8 +16,9 @@ type splicer struct {
 	buffer *bytes.Buffer
 }
 
-func (p *splicer) stop() {
+func (p *splicer) Close() error {
 	p.isStop = true
+	return nil
 }
 
 func (p *splicer) next() (*bytes.Buffer, error) {

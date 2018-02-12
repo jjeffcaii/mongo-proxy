@@ -2,9 +2,7 @@ package pxmgo
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"log"
 	"net"
 	"sync/atomic"
 
@@ -20,11 +18,11 @@ func (p *errInvalidOp) Error() string {
 }
 
 type implContext struct {
+	reqId       int32
 	conn        net.Conn
 	middlewares []Middleware
 	splicer     *splicer
 	writer      *bufio.Writer
-	reqId       int32
 	queue       chan protocol.Message
 }
 
@@ -61,25 +59,16 @@ func (p *implContext) Send(bs []byte) error {
 	return p.writer.Flush()
 }
 
-func (p *implContext) SendBuffer(bf *bytes.Buffer) error {
-	_, err := bf.WriteTo(p.writer)
-	if err != nil {
-		return err
-	}
-	return p.writer.Flush()
-}
-
 func (p *implContext) Close() error {
-	close(p.queue)
-	p.splicer.stop()
+	p.splicer.Close()
 	return p.conn.Close()
 }
 
-func (p *implContext) nextMessage() error {
+func (p *implContext) nextMessage() (protocol.Message, error) {
 	var bs []byte
 	data, err := p.splicer.next()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	bs = data.Bytes()
 	var msg protocol.Message
@@ -122,10 +111,10 @@ func (p *implContext) nextMessage() error {
 		break
 	}
 	if msg == nil {
-		return &errInvalidOp{opcode}
+		return nil, &errInvalidOp{opcode}
 	}
 	if err := msg.Decode(bs); err != nil {
-		return err
+		return nil, err
 	}
 	p.reqId = msg.Header().RequestID
 	for _, it := range p.middlewares {
@@ -135,13 +124,12 @@ func (p *implContext) nextMessage() error {
 		}
 	}
 	if err == Ignore {
-		return nil
+		return nil, nil
 	}
 	if err != nil && err != EOF {
-		return err
+		return nil, err
 	}
-	p.queue <- msg
-	return nil
+	return msg, nil
 }
 
 func newContext(conn net.Conn) Context {
@@ -152,13 +140,17 @@ func newContext(conn net.Conn) Context {
 		writer:      bufio.NewWriter(conn),
 		queue:       make(chan protocol.Message),
 	}
-	go func() {
+	go func(q chan<- protocol.Message) {
 		for {
-			if err := ctx.nextMessage(); err != nil {
-				log.Println("fetch next message failed:", err)
+			next, err := ctx.nextMessage()
+			if err != nil {
 				break
 			}
+			if next != nil {
+				q <- next
+			}
 		}
-	}()
+		close(q)
+	}(ctx.queue)
 	return ctx
 }

@@ -1,7 +1,6 @@
 package pxmgo
 
 import (
-	"bytes"
 	"errors"
 	"io"
 
@@ -12,7 +11,6 @@ type Context interface {
 	io.Closer
 	Use(middlewares ...Middleware) Context
 	Send(bs []byte) error
-	SendBuffer(bf *bytes.Buffer) error
 	SendMessage(msg protocol.Message) error
 	Next() <-chan protocol.Message
 }
@@ -25,11 +23,6 @@ type Endpoint interface {
 
 var EOF = io.EOF
 var Ignore = errors.New("skip message")
-
-type Identifier struct {
-	Username string
-	Password string
-}
 
 type Authenticator interface {
 	Middleware
