@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	proxy := pxmgo.NewServer(":27018")
+	proxy := pxmgo.NewServer(":27017")
 	log.Println("proxy server start")
 	// custom your auth validator.
 	validator := func(db string) (*middleware.Identifier, error) {
@@ -39,7 +39,7 @@ func main() {
 		}
 		log.Printf("connect database %s success\n", *db)
 		// choose mongo host and port.
-		var mongoURI = "127.0.0.1:27017"
+		var mongoURI = "192.168.33.142:27017"
 		// connect backend begin.
 		pxmgo.NewBackend(mongoURI).Serve(func(c2 pxmgo.Context) {
 			// just pump frontend and backend.

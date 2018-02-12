@@ -1,9 +1,9 @@
-# mongo-proxy ( STILL WORKING ON IT!!! DO NOT USE IT IN PRODUCTION!!! )
+# mongo-proxy 
 an easy toolkit used to create your own proxy server for MongoDB.
 
-## Code Example
+*STILL WORKING ON IT!!! DO NOT USE IT IN PRODUCTION!!!*
 
-> The following codes are very ugly. I'll try to optimize them next time.
+## Code Example
 
 ```go
 
