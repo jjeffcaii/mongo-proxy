@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/jjeffcaii/mongo-proxy"
+	"github.com/jjeffcaii/mongo-proxy/middware"
 )
 
 func main() {
@@ -19,13 +20,20 @@ func main() {
 		return nil, nil, fmt.Errorf("access deny for db: %s", db)
 	}
 	server.Serve(func(c1 pxmgo.Context) {
-		// create security manager
+		// create authenticator.
+		authenticator := middware.NewAuthenticator(validator)
 		// register frontend context middlewares.
-		c1.Use(&pxmgo.SkipIsMaster{}, pxmgo.NewSecurityManager(validator))
+		c1.Use(&middware.SkipIsMaster{}, authenticator)
+		// wait for auth finish.
+		db, ok := authenticator.Wait()
+		if !ok {
+			return
+		}
+		log.Printf("connect database %s success\n", *db)
 		// choose mongo host and port
 		var mgoHostAndPort = "127.0.0.1:27017"
 		// connect backend begin!
-		backend := pxmgo.NewStaticBackend(mgoHostAndPort)
+		backend := pxmgo.NewBackend(mgoHostAndPort)
 		err := backend.Serve(func(c2 pxmgo.Context) {
 			go pxmgo.Pump(c1, c2)
 		})

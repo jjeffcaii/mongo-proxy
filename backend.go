@@ -40,7 +40,11 @@ func (p *staticBackend) Close() error {
 	return nil
 }
 
-func NewStaticBackend(addr string) Endpoint {
+type BackendOption struct {
+}
+
+func NewBackend(addr string, options ...*BackendOption) Endpoint {
+	// TODO: support options
 	return &staticBackend{
 		mutex: &sync.Mutex{},
 		addr:  addr,

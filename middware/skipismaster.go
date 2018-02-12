@@ -1,16 +1,16 @@
-package pxmgo
+package middware
 
 import (
 	"time"
 
-	"github.com/jjeffcaii/go-debug"
+	"github.com/jjeffcaii/mongo-proxy"
 	"github.com/jjeffcaii/mongo-proxy/protocol"
 )
 
 type SkipIsMaster struct {
 }
 
-func (p *SkipIsMaster) Handle(ctx Context, req protocol.Message) error {
+func (p *SkipIsMaster) Handle(ctx pxmgo.Context, req protocol.Message) error {
 	q, ok := req.(*protocol.OpQuery)
 	if !ok {
 		return nil
@@ -42,6 +42,5 @@ func (p *SkipIsMaster) Handle(ctx Context, req protocol.Message) error {
 	}); err != nil {
 		return err
 	}
-	debug.Debug("middware:skipismaster").Printf("skip is master: request_id=%d\n", q.OpHeader.RequestID)
-	return Ignore
+	return pxmgo.Ignore
 }
